@@ -16,25 +16,19 @@ import telebot
 from telebot import types
 import threading
 from bs4 import BeautifulSoup
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 # ======================
 # 📊 إعدادات البوت - 𝐑𝐀𝐌𝐎𝐒
 # ======================
 BOT_TOKEN ="8678206908:AAHF-7TBi-Umq1eagATyzZ9JSvvBkCe54wg"
-CHAT_IDS = ["-1005337955669"] # آيدي القناة التي ترسل إليها الأكواد (بث مباشر)
-ADMIN_IDS = [7215277191] # آيدي الأدمن المسموح له بدخول لوحة التحكم
+CHAT_IDS ="5337955669"# آيدي القناة التي ترسل إليها الأكواد (بث مباشر)
+ADMIN_IDS ="7215277191" # آيدي الأدمن المسموح له بدخول لوحة التحكم
 DB_PATH = "bot_ramos_live.db" # مسار قاعدة البيانات
 REFRESH_INTERVAL = 2 # سرعة تحديث الأكواد بالثواني
 
 # ---------------------------------------------------------
 # 🔒 نظام تشفير المصادر (Encrypted Sources)
 # ---------------------------------------------------------
-#البوت ما تناخس في حاجه انتا ما عارفها شنو يا جعبه 
 _E_SITE_URL = "aHR0cHM6Ly9pbmZpbml0eS1zbXMudmVyY2VsLmFwcA==" # رابط الموقع المصدر مشفر
 _E_NUMBERS_PATH = "L251bWJlcnM=" #ما تناخس
 _E_GET_BTN_TEXT = "R0VUIDMgTlVNQkVSUw==" # ما تناخس
@@ -177,39 +171,16 @@ def back_btn(cb="home"):
 # 🌐 وظيفة الجلب المباشر (Live Fetch)
 # ======================
 def live_fetch_new_numbers(country_name):
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--window-size=1920,1080")
-    from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-
-options = Options()
-options.add_argument("--no-sandbox")
-options.add_argument("--disable-dev-shm-usage")
-options.add_argument("--headless")
-
-driver = webdriver.Chrome(options=options)
+    # تم إلغاء استخدام Selenium هنا واستبداله بطلب مباشر لأن الاستضافة لا تدعمه
     try:
-        driver.get(NUMBERS_URL)
-        wait = WebDriverWait(driver, 20)
-        btn = wait.until(EC.element_to_be_clickable((By.XPATH, f"//button[contains(., '{country_name}')]")))
-        btn.click()
-        time.sleep(2)
-        sub_name = f"{country_name} 1"
-        sub_btn = wait.until(EC.element_to_be_clickable((By.XPATH, f"//button[contains(., '{sub_name}')]")))
-        sub_btn.click()
-        time.sleep(2)
-        get_btn = wait.until(EC.element_to_be_clickable((By.XPATH, f"//button[contains(., '{GET_BTN_TEXT}')]")))
-        get_btn.click()
-        time.sleep(5)
-        page_source = driver.page_source
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        response = requests.get(NUMBERS_URL, headers=headers, timeout=10)
+        page_source = response.text
         pattern = r"(\d+INFINITY\d+|84\d{8,12}|263\d{8,12}|593\d{8,12}|49\d{8,12})"
         matches = re.findall(pattern, page_source)
         return list(set(matches))
-    except: return []
-    finally: driver.quit()
+    except: 
+        return []
 
 def assign_fresh_number(user_id, country_name):
     fresh_site_numbers = live_fetch_new_numbers(country_name)
@@ -247,11 +218,9 @@ def scrape_all_otps():
         page_text = soup.get_text(separator='|')
         
         # نستخدم Regex مطور للبحث عن السجلات من الأعلى للأسفل
-        # يبحث عن: (علم | خدمة | دولة | رقم)
         pattern = r"(?P<flag>[\U0001F1E6-\U0001F1FF]{2})\|(?P<service>[^|]+)\|(?P<country>[^|]+)\|[^|]+\|(?P<number>\d+INFINITY\d+|\d+)"
         matches = list(re.finditer(pattern, page_text))
         
-        # نأخذ جميع النتائج (الجديدة في الأعلى والقديمة في الأسفل)
         for match in matches:
             service_raw = match.group("service").strip()
             service_tag = "#" + re.sub(r'\W+', '', service_raw).upper()[:10]
@@ -456,4 +425,8 @@ def handle_inputs(msg):
         for u in users:
             try: bot.send_message(u[0], broadcast_text); count += 1
             except: pass
-        emoji_done = get_custom_emoj
+        emoji_done = get_custom_emoji(EMOJI_DEFAULT, "✅")
+        bot.send_message(cid, f"{emoji_done} تمت الإذاعة بنجاح لـ {count} مستخدم.")
+
+# لتشغيل البوت بشكل مستمر
+bot.infinity_polling()
